@@ -1,0 +1,62 @@
+podTemplate(label: 'gradlePod',
+    volumes: [
+        hostPathVolume(hostPath: '/etc/docker/certs.d', mountPath: '/etc/docker/certs.d'),
+        hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
+        secretVolume(secretName: 'icpadmin', mountPath: '/var/run/secrets/registry-account'),
+        configMapVolume(configMapName: 'icpconfig', mountPath: '/var/run/configs/registry-config')
+    ],
+    containers: [
+        containerTemplate(name: 'kubectl', image: 'ibmcloudacademy/k8s-icp:v1.0', ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'docker' , image: 'docker:17.06.1-ce', ttyEnabled: true, command: 'cat')
+  ]) {
+
+    node('gradlePod') {
+        checkout scm
+        container('docker') {
+            stage('Build Docker Image') {
+                sh """
+                #!/bin/bash
+                NAMESPACE=`cat /var/run/configs/registry-config/namespace`
+                REGISTRY=`cat /var/run/configs/registry-config/registry`
+
+                docker build -t \${REGISTRY}/\${NAMESPACE}/icp-test-consumer:${env.BUILD_NUMBER} .
+                """
+            }
+            stage('Push Docker Image to Registry') {
+                sh """
+                #!/bin/bash
+                NAMESPACE=`cat /var/run/configs/registry-config/namespace`
+                REGISTRY=`cat /var/run/configs/registry-config/registry`
+
+                set +x
+                ICP_USER=`cat /var/run/secrets/registry-account/username`
+                ICP_PASSWORD=`cat /var/run/secrets/registry-account/password`
+                docker login -u=\${ICP_USER} -p=\${ICP_PASSWORD} \${REGISTRY}
+                set -x
+
+                docker push \${REGISTRY}/\${NAMESPACE}/icp-test-consumer:${env.BUILD_NUMBER}
+                """
+            }
+        }
+        container('kubectl') {
+            stage('Deploy new Docker Image') {
+                sh """
+                #!/bin/bash
+                set +e
+                NAMESPACE=`cat /var/run/configs/registry-config/namespace`
+                REGISTRY=`cat /var/run/configs/registry-config/registry`
+                ICP_USER=`cat /var/run/secrets/registry-account/username`
+                ICP_PASSWORD=`cat /var/run/secrets/registry-account/password`
+                wget --no-check-certificate https://10.10.1.10:8443/api/cli/icp-linux-amd64
+                bx plugin install icp-linux-amd64
+                bx pr login -a https://10.10.1.10:8443 --skip-ssl-validation -u \${ICP_USER} -p \${ICP_PASSWORD} -c id-cloudcluster-account
+                bx pr cluster-config cloudcluster
+                helm init --client-only
+                helm repo add icp-test https://raw.githubusercontent.com/FintanMcElroy/icp-test-helm/master/charts
+                helm install --tls -n icp-test-consumer --set image.repository=\${REGISTRY}/\${NAMESPACE}/icp-test-consumer --set image.tag=${env.BUILD_NUMBER} icp-test/consumer
+
+                """
+            }
+        }
+    }
+}
