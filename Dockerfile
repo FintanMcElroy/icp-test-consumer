@@ -5,4 +5,9 @@ COPY package.json package.json
 
 RUN npm install
 
-RUN npm start
+# I did this first - but this means that this starts rightaway and blocks the job of completing creating the Docker image
+# What you need is instead an entry point script that will be invoked on container start
+# RUN npm start
+
+# script that runs at container start and invokes npm start (which in turn runs 'node app.js')
+ENTRYPOINT ["./startup.sh"]
