@@ -2,6 +2,7 @@ FROM node:6
  
 COPY app.js app.js
 COPY package.json package.json
+COPY startup.sh startup.sh
 
 RUN npm install
 

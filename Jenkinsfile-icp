@@ -1,4 +1,4 @@
-podTemplate(label: 'gradlePod',
+podTemplate(label: 'dockerHelmPod',
     volumes: [
         hostPathVolume(hostPath: '/etc/docker/certs.d', mountPath: '/etc/docker/certs.d'),
         hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
@@ -10,7 +10,7 @@ podTemplate(label: 'gradlePod',
         containerTemplate(name: 'docker' , image: 'docker:17.06.1-ce', ttyEnabled: true, command: 'cat')
   ]) {
 
-    node('gradlePod') {
+    node('dockerHelmPod') {
         checkout scm
         container('docker') {
             stage('Build Docker Image') {
@@ -53,6 +53,8 @@ podTemplate(label: 'gradlePod',
                 bx pr cluster-config cloudcluster
                 helm init --client-only
                 helm repo add icp-test https://raw.githubusercontent.com/FintanMcElroy/icp-test-helm/master/charts
+				# Uninstall any previous release first
+				helm del --purge icp-test-consumer
                 helm install --tls -n icp-test-consumer --set image.repository=\${REGISTRY}/\${NAMESPACE}/icp-test-consumer --set image.tag=${env.BUILD_NUMBER} icp-test/consumer
 
                 """
