@@ -54,7 +54,7 @@ podTemplate(label: 'dockerHelmPod',
                 helm init --client-only
                 helm repo add icp-test https://raw.githubusercontent.com/FintanMcElroy/icp-test-helm/master/charts
 				# Uninstall any previous release first
-				helm del --purge icp-test-consumer
+				helm del --purge icp-test-consumer --tls
                 helm install --tls -n icp-test-consumer --set image.repository=\${REGISTRY}/\${NAMESPACE}/icp-test-consumer --set image.tag=${env.BUILD_NUMBER} icp-test/consumer
 
                 """
