@@ -15,7 +15,7 @@ podTemplate(label: 'dockerHelmPod',
                 sh """
                 #!/bin/bash
 
-                docker build -t icp-test-consumer:${env.BUILD_NUMBER} .
+                docker build -t icp-test/consumer:${env.BUILD_NUMBER} .
                 """
             }
             stage('Push Docker Image to Registry') {
@@ -31,10 +31,11 @@ podTemplate(label: 'dockerHelmPod',
             stage('Deploy new Docker Image') {
                 sh """
                 #!/bin/bash
-                helm init --client-only
+                # helm init --client-only
                 helm repo add icp-test https://raw.githubusercontent.com/FintanMcElroy/icp-test-helm/master/charts
 				# FM: not sure how to be able to reference a local Docker for repository - otherwise have to push it to DockerHub and reference it there
-                helm install --tls -n icp-test-consumer --set image.repository=\${REGISTRY}/\${NAMESPACE}/icp-test-consumer --set image.tag=${env.BUILD_NUMBER} icp-test/consumer
+                # helm install --tls -n icp-test-consumer --set image.repository=icp-test/consumer --set image.tag=${env.BUILD_NUMBER} icp-test/consumer
+				sudo helm install -n icp-test-consumer icp-test/consumer-mk
 
                 """
             }

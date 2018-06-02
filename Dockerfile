@@ -10,5 +10,8 @@ RUN npm install
 # What you need is instead an entry point script that will be invoked on container start
 # RUN npm start
 
+# Set execute permissions for all on the startup shell script
+RUN chmod a+x startup.sh
+
 # script that runs at container start and invokes npm start (which in turn runs 'node app.js')
 ENTRYPOINT ["./startup.sh"]

@@ -3,13 +3,14 @@
 const express = require('express');
 const app = express();
 const router = express.Router();
+// The port should be in a configuration that is stored outside the app code
 const port = 8080;
 const url = require('url');
 
 // all routes prefixed with /api
 app.use('/api', router);
 
-// set the server to listen on port 8080
+// set the server to listen on the supplied port number
 app.listen(port, () => console.log(`Listening on port ${port}`));
 
 router.get('/calculate', (request, response) => {
