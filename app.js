@@ -3,41 +3,46 @@
 const express = require('express');
 const app = express();
 const router = express.Router();
-// The port should be in a configuration that is stored outside the app code
-const port = 8080;
+// Get port from environment, default to 8080 if local
+const serverPort = process.env.PORT || 8080;
 const url = require('url');
+// to make outbound REST API calls
+const Client = require('node-rest-client').Client; // https://www.npmjs.com/package/node-rest-client for docs
+
+// We need a way to have svc endpoint info injected from the environment as it will differ between kubernetes, Cloud Foundry, and other contexts
+// Get providerEndpoint from environment, default to a local address
+const providerEndpoint = process.env.PROVIDER_ENDPOINT || "http://127.0.0.1:8081";
 
 // all routes prefixed with /api
 app.use('/api', router);
 
 // set the server to listen on the supplied port number
-app.listen(port, () => console.log(`Listening on port ${port}`));
-
-router.get('/calculate', (request, response) => {
-  console.log(`/api/calculate invoked ...`);
-  let urlParts = url.parse(request.url, true);
-  let parameters = urlParts.query;
-  let myParam = parameters.myParam;
-  
-  let myResponse = `I multiplied the number you gave me (${myParam}) by 5 and got: ${myParam * 5}`;
-  
-  console.log(`/api/calculate about to return myResponse: ${myResponse}`);
-  response.json({message: myResponse});
-});
+app.listen(serverPort, () => console.log(`Listening on port ${serverPort}`));
 
 router.get('/greet', (request, response) => {
   console.log(`/api/greet invoked ...`);
   let urlParts = url.parse(request.url, true);
   let parameters = urlParts.query;
-  let lang = parameters.lang;
-  let myResponse;
-  switch (lang) {
-	case "EN": {myResponse = `Hi there, old chap!`; break;}
-	case "DE": {myResponse = `Guten tag, mein herr!`; break;}
-	case "FR": {myResponse = `Bon journee, Monsieur!`; break;}
-	default: {myResponse = `Hello, you did not supply a recognised language option`}
-  }
   
-  console.log(`/api/greet about to return myResponse: ${myResponse}`);
-  response.json({message: myResponse});
+  // Construct a JSON structure with the lang parameter in it
+  let postData = {};
+  postData.lang = parameters.lang;
+  
+  // set content-type header and data as json in args parameter
+  let args = {
+	data: postData,
+    headers: { "Content-Type": "application/json" }
+  };
+  
+  let restClient = new Client();
+
+  let restPath = `${providerEndpoint}/api/provider/greet`;
+  console.log("restPath", restPath);
+  
+  restClient.post(restPath, args, function (data, resp) {
+	// data is the parsed return data, resp is the raw HTTP response
+	console.log(`/api/greet about to return response: ${data.greeting}`);
+	response.json({"message": data.greeting});
+  });
+  
 });

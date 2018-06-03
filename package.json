@@ -7,10 +7,11 @@
 	},
 	"dependencies": {
 		"express": "^4.16.x",
-		"url": "^0.11.x"
+		"url": "^0.11.x",
+		"node-rest-client": "^3.1.x"
 	},
 	"repository": {},
 	"engines": {
-		"node": "6.x"
+		"node": "8.11.x"
 	}
 }

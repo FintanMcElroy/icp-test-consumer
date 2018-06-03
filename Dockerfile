@@ -1,4 +1,4 @@
-FROM node:6
+FROM node:8
  
 COPY app.js app.js
 COPY package.json package.json
@@ -12,6 +12,9 @@ RUN npm install
 
 # Set execute permissions for all on the startup shell script
 RUN chmod a+x startup.sh
+
+# Not clear if this is needed - seemed to run on K8s without it
+# EXPOSE 8080
 
 # script that runs at container start and invokes npm start (which in turn runs 'node app.js')
 ENTRYPOINT ["./startup.sh"]
